@@ -10,15 +10,19 @@
     helpUrl = "https://www.esoui.com/portal.php?id=218&a=faq", -- a string URL or a function that returns the string URL (optional)
     reference = "MyAddonSubmenu", -- unique global reference to control (optional)
     resetFunc = function(submenuControl) d("defaults reset") end, -- custom function to run after the control is reset to defaults (optional)
+    onSubmenuExpanded = function(submenuControl) d("submenu was opened") end, -- custom function to run after the submenu is expanded (optional)
+    onSubmenuCollapsed = function(submenuControl) d("submenu was close") end, -- custom function to run after the submenu is collapsed (optional)
 } ]]
 
-local widgetVersion = 15
+local widgetVersion = 16
 local LAM = LibAddonMenu2
 if not LAM:RegisterWidget("submenu", widgetVersion) then return end
 
 local wm = WINDOW_MANAGER
 local am = ANIMATION_MANAGER
 local ICON_SIZE = 32
+
+local funcType = "function"
 
 local GetDefaultValue = LAM.util.GetDefaultValue
 local GetColorForState = LAM.util.GetColorForState
@@ -66,12 +70,21 @@ end
 local function AnimateSubmenu(clicked)
     local control = clicked:GetParent()
     if control.disabled then return end
+    local submenuData = control.data
 
     control.open = not control.open
     if control.open then
         control.animation:PlayFromStart()
+
+        --Callback onSubmenuExpanded - Call after animation opened the submenu
+        local onSubmenuExpanded = GetDefaultValue(submenuData.onSubmenuExpanded)
+        if type(onSubmenuExpanded) == funcType then onSubmenuExpanded(control) end
     else
         control.animation:PlayFromEnd()
+
+        --Callback onSubmenuCollapsed - Call after animation closes the submenu
+        local onSubmenuCollapsed = GetDefaultValue(submenuData.onSubmenuCollapsed)
+        if type(onSubmenuCollapsed) == funcType then onSubmenuCollapsed(control) end
     end
 end
 
@@ -138,7 +151,7 @@ function LAMCreateControl.submenu(parent, submenuData, controlName)
     --figure out the cool animation later...
     control.animation = am:CreateTimeline()
     local animation = control.animation
-    animation:SetPlaybackType(ANIMATION_SIZE, 0) --2nd arg = loop count
+    animation:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT, 0) --2nd arg = loop count
 
     control:SetResizeToFitDescendents(true)
     control.open = false
@@ -148,6 +161,7 @@ function LAMCreateControl.submenu(parent, submenuData, controlName)
     end
     animation:SetHandler("OnStop", function(self, completedPlaying)
         scroll:SetResizeToFitDescendents(control.open)
+        scroll:SetResizeToFitConstrains(ANCHOR_CONSTRAINS_XY)
         if control.open then
             control.arrow:SetTexture("EsoUI\\Art\\Miscellaneous\\list_sortup.dds")
             scroll:SetResizeToFitPadding(5, 20)
