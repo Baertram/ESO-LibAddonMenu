@@ -70,21 +70,12 @@ end
 local function AnimateSubmenu(clicked)
     local control = clicked:GetParent()
     if control.disabled then return end
-    local submenuData = control.data
 
     control.open = not control.open
     if control.open then
         control.animation:PlayFromStart()
-
-        --Callback onSubmenuExpanded - Call after animation opened the submenu
-        local onSubmenuExpanded = GetDefaultValue(submenuData.onSubmenuExpanded)
-        if type(onSubmenuExpanded) == funcType then onSubmenuExpanded(control) end
     else
         control.animation:PlayFromEnd()
-
-        --Callback onSubmenuCollapsed - Call after animation closes the submenu
-        local onSubmenuCollapsed = GetDefaultValue(submenuData.onSubmenuCollapsed)
-        if type(onSubmenuCollapsed) == funcType then onSubmenuCollapsed(control) end
     end
 end
 
@@ -155,6 +146,10 @@ function LAMCreateControl.submenu(parent, submenuData, controlName)
 
     control:SetResizeToFitDescendents(true)
     control.open = false
+
+    local onSubmenuExpanded = GetDefaultValue(submenuData.onSubmenuExpanded)
+    local onSubmenuCollapsed = GetDefaultValue(submenuData.onSubmenuCollapsed)
+
     label:SetHandler("OnMouseUp", AnimateSubmenu)
     if(control.icon) then
         control.icon:SetHandler("OnMouseUp", AnimateSubmenu)
@@ -162,13 +157,20 @@ function LAMCreateControl.submenu(parent, submenuData, controlName)
     animation:SetHandler("OnStop", function(self, completedPlaying)
         scroll:SetResizeToFitDescendents(control.open)
         scroll:SetResizeToFitConstrains(ANCHOR_CONSTRAINS_XY)
+
         if control.open then
             control.arrow:SetTexture("EsoUI\\Art\\Miscellaneous\\list_sortup.dds")
             scroll:SetResizeToFitPadding(5, 20)
+
+            --Callback onSubmenuExpanded - Call after animation opened the submenu
+            if type(onSubmenuExpanded) == funcType then onSubmenuExpanded(control) end
         else
             control.arrow:SetTexture("EsoUI\\Art\\Miscellaneous\\list_sortdown.dds")
             scroll:SetResizeToFitPadding(5, 0)
             scroll:SetHeight(0)
+
+            --Callback onSubmenuCollapsed - Call after animation closes the submenu
+            if type(onSubmenuCollapsed) == funcType then onSubmenuCollapsed(control) end
         end
     end)
 
